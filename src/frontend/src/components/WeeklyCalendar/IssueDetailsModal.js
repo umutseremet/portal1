@@ -7,6 +7,9 @@ const IssueDetailsModal = ({ show, onHide, selectedGroup, selectedDate }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // ✅ Redmine base URL - backend'deki ile aynı olmalı
+  const REDMINE_BASE_URL = 'http://192.168.1.17:9292';
+
   useEffect(() => {
     console.log('🔄 Modal useEffect:', { show, selectedGroup, selectedDate });
     if (show && selectedGroup && selectedDate) {
@@ -166,20 +169,27 @@ const IssueDetailsModal = ({ show, onHide, selectedGroup, selectedDate }) => {
                     {issues.map((issue, index) => (
                       <tr key={issue.issueId || index}>
                         <td>
-                          <span className="badge bg-secondary">
+                          {/* ✅ İŞ NUMARASINA REDMINE LİNKİ EKLENDİ */}
+                          <a 
+                            href={`${REDMINE_BASE_URL}/issues/${issue.issueId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="badge bg-secondary text-decoration-none"
+                            style={{ cursor: 'pointer' }}
+                            title={`Redmine'da aç: #${issue.issueId}`}
+                          >
                             #{issue.issueId}
-                          </span>
+                          </a>
                         </td>
                         <td>
                           <div className="d-flex align-items-start">
-                            <i className={`bi bi-circle-fill me-2 mt-1 ${issue.isClosed ? 'text-success' : 'text-warning'}`} 
-                               style={{ fontSize: '8px' }}></i>
-                            <div className="flex-grow-1">
-                              <div className="fw-medium">{issue.subject}</div>
-                              <small className="text-muted">
-                                <i className="bi bi-folder me-1"></i>
-                                {issue.projectName}
-                              </small>
+                            <i className={`bi bi-circle-fill me-2 mt-1 ${issue.isClosed ?
+                              'text-success' : 'text-warning'}`}
+                              style={{ fontSize: '0.5rem' }}
+                            ></i>
+                            <div>
+                              <div className="fw-medium">{issue.subject || 'Konu yok'}</div>
+                              <small className="text-muted">{issue.trackerName}</small>
                             </div>
                           </div>
                         </td>
@@ -197,15 +207,15 @@ const IssueDetailsModal = ({ show, onHide, selectedGroup, selectedDate }) => {
                         </td>
                         <td>
                           <span className={`badge ${getStatusBadgeClass(issue.statusName, issue.isClosed)}`}>
-                            {issue.statusName}
+                            {issue.statusName || 'Durum Yok'}
                           </span>
                         </td>
-                        <td className="text-center">
+                        <td>
                           <div className="d-flex align-items-center gap-2">
-                            <div className="progress flex-grow-1" style={{ height: '8px' }}>
-                              <div 
+                            <div className="progress flex-grow-1" style={{ height: '6px' }}>
+                              <div
                                 className={`progress-bar ${
-                                  issue.completionPercentage >= 100 ? 'bg-success' :
+                                  issue.completionPercentage === 100 ? 'bg-success' :
                                   issue.completionPercentage >= 75 ? 'bg-info' :
                                   issue.completionPercentage >= 50 ? 'bg-warning' : 'bg-danger'
                                 }`}

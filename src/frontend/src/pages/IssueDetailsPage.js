@@ -7,6 +7,7 @@ import './IssueDetailsPage.css';
 const IssueDetailsPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const REDMINE_BASE_URL = 'http://192.168.1.17:9292';
 
     const { selectedDate, selectedGroup, currentWeek } = location.state || {};
 
@@ -561,7 +562,16 @@ const IssueDetailsPage = () => {
                                         return (
                                             <tr key={issue.issueId} className={isOverdue ? 'overdue-row' : ''}>
                                                 <td>
-                                                    <span className="badge bg-secondary">#{issue.issueId}</span>
+                                                    <a
+                                                        href={`${REDMINE_BASE_URL}/issues/${issue.issueId}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="badge bg-secondary text-decoration-none"
+                                                        style={{ cursor: 'pointer' }}
+                                                        title={`Redmine'da aç: #${issue.issueId}`}
+                                                    >
+                                                        #{issue.issueId}
+                                                    </a>
                                                 </td>
                                                 <td>
                                                     <div className="d-flex align-items-center">
