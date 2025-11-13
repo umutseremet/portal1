@@ -1,14 +1,12 @@
 // src/components/WeeklyCalendar/IssueDetailsModal.js
 import React, { useState, useEffect } from 'react';
-import apiService from '../../services/api'; // ✅ axios yerine apiService
+import apiService from '../../services/api';
+import { REDMINE_BASE_URL } from '../../utils/constants'; // ✅ Environment variable'dan okunur
 
 const IssueDetailsModal = ({ show, onHide, selectedGroup, selectedDate }) => {
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // ✅ Redmine base URL - backend'deki ile aynı olmalı
-  const REDMINE_BASE_URL = 'http://192.168.1.17:9292';
 
   useEffect(() => {
     console.log('🔄 Modal useEffect:', { show, selectedGroup, selectedDate });
@@ -22,8 +20,6 @@ const IssueDetailsModal = ({ show, onHide, selectedGroup, selectedDate }) => {
     setError(null);
     
     try {
-      // ✅ Credentials kontrolü GEREKMİYOR - SQL Server'dan veri çekiliyor
-
       // Tarih formatını düzelt
       let formattedDate = selectedDate;
       if (selectedDate instanceof Date) {
@@ -40,12 +36,10 @@ const IssueDetailsModal = ({ show, onHide, selectedGroup, selectedDate }) => {
 
       console.log('📤 Calling API with params:', params);
 
-      // ✅ apiService kullanarak çağrı yap (credentials GEREKMİYOR)
       const response = await apiService.getIssuesByDateAndType(params);
 
       console.log('📥 API Response:', response);
 
-      // Response'dan issues'ı al
       const issuesData = response.issues || [];
       
       console.log('✅ Issues extracted:', issuesData);
@@ -169,7 +163,7 @@ const IssueDetailsModal = ({ show, onHide, selectedGroup, selectedDate }) => {
                     {issues.map((issue, index) => (
                       <tr key={issue.issueId || index}>
                         <td>
-                          {/* ✅ İŞ NUMARASINA REDMINE LİNKİ EKLENDİ */}
+                          {/* ✅ REDMINE_BASE_URL constants'dan okunuyor */}
                           <a 
                             href={`${REDMINE_BASE_URL}/issues/${issue.issueId}`}
                             target="_blank"

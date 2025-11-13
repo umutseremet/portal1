@@ -1219,6 +1219,118 @@ class ApiService {
     return { username: '', password: '' };
   }
 
+  // src/frontend/src/services/api.js dosyasına eklenecek metodlar:
+
+  // ===== DATA CAM PREPARATION ENDPOINTS =====
+
+  /**
+   * Get items pending technical drawing work
+   * Backend: POST /api/DataCamPreparation/list
+   */
+  async getDataCamItems(params = {}) {
+    console.log('📦 API getDataCamItems call:', params);
+
+    try {
+      const requestBody = {
+        searchTerm: params.searchTerm || null,
+        page: params.page || 1,
+        pageSize: params.pageSize || 20,
+        sortBy: params.sortBy || 'CreatedAt',
+        sortOrder: params.sortOrder || 'asc'
+      };
+
+      const response = await this.post('/DataCamPreparation/list', requestBody);
+      console.log('✅ API getDataCamItems response:', response);
+
+      // Map response to camelCase
+      return {
+        items: response.items || response.Items || [],
+        totalCount: response.totalCount || response.TotalCount || 0,
+        page: response.page || response.Page || 1,
+        pageSize: response.pageSize || response.PageSize || 20,
+        totalPages: response.totalPages || response.TotalPages || 0,
+        hasNextPage: response.hasNextPage || response.HasNextPage || false,
+        hasPreviousPage: response.hasPreviousPage || response.HasPreviousPage || false
+      };
+    } catch (error) {
+      console.error('❌ API getDataCamItems error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get BOM locations for an item
+   * Backend: GET /api/DataCamPreparation/item/{itemId}/bom-locations
+   */
+  async getItemBomLocations(itemId) {
+    if (!itemId) {
+      throw new Error('Item ID is required');
+    }
+
+    console.log('📦 API getItemBomLocations call:', { itemId });
+
+    try {
+      const response = await this.get(`/DataCamPreparation/item/${itemId}/bom-locations`);
+      console.log('✅ API getItemBomLocations response:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ API getItemBomLocations error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark technical drawing as completed
+   * Backend: POST /api/DataCamPreparation/mark-completed/{itemId}
+   * ⚠️ Bu method sadece DataCam ekranından ürün kartı kaydedildiğinde çağrılmalıdır
+   */
+  async markTechnicalDrawingCompleted(itemId) {
+    if (!itemId) {
+      throw new Error('Item ID is required');
+    }
+
+    console.log('📦 API markTechnicalDrawingCompleted call:', { itemId });
+
+    try {
+      const response = await this.post(`/DataCamPreparation/mark-completed/${itemId}`, {});
+      console.log('✅ API markTechnicalDrawingCompleted response:', response);
+
+      return {
+        success: response.success || response.Success || false,
+        message: response.message || response.Message || '',
+        itemId: response.itemId || response.ItemId || itemId,
+        completedAt: response.completedAt || response.CompletedAt || new Date()
+      };
+    } catch (error) {
+      console.error('❌ API markTechnicalDrawingCompleted error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get DataCam statistics
+   * Backend: GET /api/DataCamPreparation/stats
+   */
+  async getDataCamStats() {
+    console.log('📦 API getDataCamStats call');
+
+    try {
+      const response = await this.get('/DataCamPreparation/stats');
+      console.log('✅ API getDataCamStats response:', response);
+
+      return {
+        totalItems: response.totalItems || response.TotalItems || 0,
+        completedItems: response.completedItems || response.CompletedItems || 0,
+        pendingItems: response.pendingItems || response.PendingItems || 0,
+        completionRate: response.completionRate || response.CompletionRate || 0,
+        recentlyCompleted: response.recentlyCompleted || response.RecentlyCompleted || 0
+      };
+    } catch (error) {
+      console.error('❌ API getDataCamStats error:', error);
+      throw error;
+    }
+  }
+
   /**
  * Create a new BOM work
  * Backend: POST /api/BomWorks

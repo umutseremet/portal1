@@ -169,6 +169,7 @@ namespace API.Controllers
                 return StatusCode(500, new ErrorResponse { Message = "BOM çalışması alınırken hata oluştu" });
             }
         }
+
         [HttpPost]
         public async Task<ActionResult<BomWorkResponse>> CreateBomWork([FromBody] CreateBomWorkRequest request)
         {
@@ -178,15 +179,10 @@ namespace API.Controllers
                 _logger.LogInformation("Creating BOM work for project {ProjectId} by user: {Username}",
                     request.ProjectId, username);
 
-                // ✅ Frontend'den gelen credentials ile proje adını al
-                var projectName = await GetProjectNameAsync(
-                    request.ProjectId,
-                    request.RedmineUsername,
-                    request.RedminePassword);
-
                 var work = new BomWork
                 {
                     ProjectId = request.ProjectId,
+                    ProjectName = request.ProjectName, // ✅ EKLE: Frontend'den gelen proje adı
                     WorkName = request.WorkName,
                     Description = request.Description,
                     CreatedBy = username,
@@ -201,7 +197,7 @@ namespace API.Controllers
                 {
                     Id = work.Id,
                     ProjectId = work.ProjectId,
-                    ProjectName = projectName, // ✅ DEĞİŞTİ
+                    ProjectName = work.ProjectName ?? $"Project #{work.ProjectId}", // ✅ Response'a ekle
                     WorkName = work.WorkName,
                     Description = work.Description,
                     CreatedAt = work.CreatedAt,
@@ -221,6 +217,7 @@ namespace API.Controllers
                 return StatusCode(500, new ErrorResponse { Message = "BOM çalışması oluşturulurken hata oluştu" });
             }
         }
+
         /// <summary>
         /// BOM çalışmasını günceller
         /// </summary>

@@ -15,6 +15,12 @@ namespace API.Data.Entities
         [Required]
         public int ProjectId { get; set; }
 
+        /// <summary>
+        /// Redmine proje adı (CreateBomWork sırasında frontend'den gelir)
+        /// </summary>
+        [StringLength(200)]
+        public string? ProjectName { get; set; }
+
         [Required]
         [StringLength(200)]
         public string WorkName { get; set; } = string.Empty;

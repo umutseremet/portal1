@@ -1,19 +1,24 @@
 // src/frontend/src/pages/ItemEditPage.js
-// Bu dosyaya ItemFileUpload component'i eklenecek şekilde güncelleme
+// ✅ DataCam entegrasyonu ve validation ile güncellenmiş versiyon
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import apiService from '../services/api';
 import ItemFileUpload from '../components/Items/ItemFileUpload';
 import PDFPreviewModal from '../components/Items/PDFPreviewModal';
-import { useToast } from '../contexts/ToastContext'; // ← BU SATIRI EKLEYİN
+import { useToast } from '../contexts/ToastContext';
 
 const ItemEditPage = () => { 
-  const { id } = useParams(); // URL'den ID alınıyor: /definitions/items/edit/:id
+  const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const isEdit = !!id; // ID varsa edit mode, yoksa new mode
-  const toast = useToast(); // ← BU SATIRI EKLEYİN
+  const { showToast } = useToast();
+  
+  const isEdit = !!id;
+  
+  // ✅ DataCam entegrasyonu
+  const fromDataCam = location.state?.fromDataCam || false;
+  const returnPath = location.state?.returnPath || '/definitions/items';
 
   const [item, setItem] = useState(location.state?.item || null);
   const [groups, setGroups] = useState([]);
@@ -42,6 +47,9 @@ const ItemEditPage = () => {
     supplier: '',
     unit: 'Adet'
   });
+
+  // ✅ Validation errors state
+  const [errors, setErrors] = useState({});
 
   // Load item data
   useEffect(() => {
@@ -74,7 +82,8 @@ const ItemEditPage = () => {
       populateForm(data);
     } catch (err) {
       console.error('Error loading item:', err);
-      toast.error('Ürün bilgisi yüklenirken hata oluştu');
+      showToast('Ürün bilgisi yüklenirken hata oluştu', 'error');
+      navigate('/definitions/items');
     } finally {
       setLoading(false);
     }
@@ -90,6 +99,7 @@ const ItemEditPage = () => {
       setGroups(response.itemGroups || []);
     } catch (err) {
       console.error('Error loading groups:', err);
+      showToast('Ürün grupları yüklenirken hata oluştu', 'error');
     }
   };
 
@@ -100,10 +110,9 @@ const ItemEditPage = () => {
       setFilesLoading(true);
       const files = await apiService.getItemFiles(parseInt(id));
       setUploadedFiles(Array.isArray(files) ? files : []);
-      console.log('✅ Files loaded:', files.length);
     } catch (err) {
-      console.error('❌ Error loading files:', err);
-      toast.error('Dosyalar yüklenirken hata oluştu: ' + err.message);
+      console.error('Error loading files:', err);
+      showToast('Dosyalar yüklenirken hata oluştu', 'error');
     } finally {
       setFilesLoading(false);
     }
@@ -133,13 +142,72 @@ const ItemEditPage = () => {
       ...prev,
       [name]: value
     }));
+    
+    // Clear error when user types
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
   };
 
+  // ✅ VALIDATION METODU
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Required fields
+    if (!formData.code || !formData.code.trim()) {
+      newErrors.code = 'Ürün kodu zorunludur';
+    } else if (formData.code.length > 50) {
+      newErrors.code = 'Ürün kodu en fazla 50 karakter olabilir';
+    }
+
+    if (!formData.name || !formData.name.trim()) {
+      newErrors.name = 'Ürün adı zorunludur';
+    } else if (formData.name.length > 500) {
+      newErrors.name = 'Ürün adı en fazla 500 karakter olabilir';
+    }
+
+    if (!formData.docNumber || !formData.docNumber.trim()) {
+      newErrors.docNumber = 'Doküman numarası zorunludur';
+    } else if (formData.docNumber.length > 50) {
+      newErrors.docNumber = 'Doküman numarası en fazla 50 karakter olabilir';
+    }
+
+    if (!formData.groupId) {
+      newErrors.groupId = 'Ürün grubu seçilmelidir';
+    }
+
+    // Number validation
+    if (formData.number && isNaN(parseInt(formData.number))) {
+      newErrors.number = 'Geçerli bir numara giriniz';
+    }
+
+    // Dimension validations (optional but if provided, must be valid)
+    if (formData.x && isNaN(parseFloat(formData.x))) {
+      newErrors.x = 'Geçerli bir X değeri giriniz';
+    }
+    if (formData.y && isNaN(parseFloat(formData.y))) {
+      newErrors.y = 'Geçerli bir Y değeri giriniz';
+    }
+    if (formData.z && isNaN(parseFloat(formData.z))) {
+      newErrors.z = 'Geçerli bir Z değeri giriniz';
+    }
+
+    // Price validation
+    if (formData.price && isNaN(parseFloat(formData.price))) {
+      newErrors.price = 'Geçerli bir fiyat giriniz';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // ✅ HANDLE SUBMIT - DataCam entegrasyonu ile
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.code || !formData.name || !formData.groupId) {
-      toast.warning('Lütfen zorunlu alanları doldurun');
+    // Validation kontrolü
+    if (!validateForm()) {
+      showToast('Lütfen zorunlu alanları doldurun', 'warning');
       return;
     }
 
@@ -155,157 +223,75 @@ const ItemEditPage = () => {
         x: formData.x ? parseFloat(formData.x) : null,
         y: formData.y ? parseFloat(formData.y) : null,
         z: formData.z ? parseFloat(formData.z) : null,
-        imageUrl: formData.imageUrl?.trim(),
-        supplierCode: formData.supplierCode?.trim(),
+        imageUrl: formData.imageUrl?.trim() || null,
+        supplierCode: formData.supplierCode?.trim() || null,
         price: formData.price ? parseFloat(formData.price) : 0,
-        supplier: formData.supplier?.trim(),
-        unit: formData.unit || 'Adet'
+        supplier: formData.supplier?.trim() || null,
+        unit: formData.unit?.trim() || 'Adet'
       };
 
       if (isEdit) {
-        await apiService.updateItem(item.id, submitData);
-        toast.success('Ürün başarıyla güncellendi');
+        // Ürünü güncelle
+        await apiService.updateItem(id, submitData);
+        
+        // ✅ CRITICAL: DataCam ekranından açıldıysa, teknik resim tamamlandı olarak işaretle
+        if (fromDataCam) {
+          try {
+            await apiService.markTechnicalDrawingCompleted(id);
+            showToast('Ürün güncellendi ve teknik resim çalışması tamamlandı olarak işaretlendi', 'success');
+          } catch (markError) {
+            console.error('Mark completed error:', markError);
+            // Ürün güncellenmiş ama mark failed - yine de başarılı say
+            showToast('Ürün güncellendi', 'success');
+          }
+        } else {
+          showToast('Ürün başarıyla güncellendi', 'success');
+        }
+        
+        // Geri dön
+        navigate(returnPath);
       } else {
-        await apiService.createItem(submitData);
-        toast.success('Ürün başarıyla oluşturuldu');
+        // Yeni ürün oluştur
+        const result = await apiService.createItem(submitData);
+        showToast('Ürün başarıyla oluşturuldu', 'success');
+        navigate('/definitions/items');
       }
-      
-      navigate('/definitions/items');
     } catch (err) {
-      console.error('Error saving item:', err);
-      toast.error(err.message || 'Ürün kaydedilirken bir hata oluştu');
+      console.error('Submit error:', err);
+      showToast(
+        err.response?.data?.message || 'Ürün kaydedilirken hata oluştu',
+        'error'
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleCancel = () => {
-    navigate('/definitions/items');
+    navigate(returnPath);
   };
 
-  // File upload handlers
-  const handleFileUpload = async (files) => {
-    if (!id) {
-      toast.warning('Dosya yüklemek için önce ürünü kaydedin');
-      return;
-    }
-
-    setUploading(true);
-
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const file of Array.from(files)) {
-      try {
-        console.log('📤 Uploading file:', file.name);
-        const result = await apiService.uploadItemFile(parseInt(id), file);
-        console.log('✅ File uploaded:', result);
-        successCount++;
-      } catch (err) {
-        console.error('❌ Error uploading file:', err);
-        toast.error(`${file.name} yüklenirken hata oluştu: ${err.message}`);
-        errorCount++;
-      }
-    }
-
-    setUploading(false);
-    
-    if (successCount > 0) {
-      toast.success(`${successCount} dosya başarıyla yüklendi.${errorCount > 0 ? ` ${errorCount} dosya yüklenemedi.` : ''}`);
-    }
-    
-    await fetchFiles();
+  const handleFileUploaded = (newFile) => {
+    setUploadedFiles(prev => [...prev, newFile]);
+    showToast('Dosya başarıyla yüklendi', 'success');
   };
 
-  const handleDeleteFile = async (fileId) => {
-    if (!window.confirm('Bu dosyayı silmek istediğinizden emin misiniz?')) {
-      return;
-    }
-
-    try {
-      setFilesLoading(true);
-      await apiService.deleteItemFile(fileId);
-      
-      setUploadedFiles(uploadedFiles.filter(file => file.id !== fileId));
-      
-      console.log('✅ File deleted:', fileId);
-      toast.success('Dosya başarıyla silindi.');
-    } catch (err) {
-      console.error('❌ Error deleting file:', err);
-      toast.error('Dosya silinirken hata oluştu: ' + err.message);
-    } finally {
-      setFilesLoading(false);
-    }
+  const handleFileDeleted = (fileId) => {
+    setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
+    showToast('Dosya silindi', 'success');
   };
 
-  const handleDeleteMultiple = async (fileIds) => {
-    if (!fileIds || fileIds.length === 0) {
-      return;
-    }
-
-    try {
-      setFilesLoading(true);
-      
-      let successCount = 0;
-      let errorCount = 0;
-
-      for (const fileId of fileIds) {
-        try {
-          await apiService.deleteItemFile(fileId);
-          successCount++;
-          console.log(`✅ File ${fileId} deleted`);
-        } catch (err) {
-          errorCount++;
-          console.error(`❌ Error deleting file ${fileId}:`, err);
-        }
-      }
-
-      setUploadedFiles(prev => prev.filter(file => !fileIds.includes(file.id)));
-
-      if (successCount > 0) {
-        toast.success(`${successCount} dosya silindi.${errorCount > 0 ? ` ${errorCount} dosya silinemedi.` : ''}`);
-      } else {
-        toast.error('Hiçbir dosya silinemedi.');
-      }
-    } catch (err) {
-      console.error('❌ Error in bulk delete:', err);
-      toast.error('Dosyalar silinirken hata oluştu: ' + err.message);
-    } finally {
-      setFilesLoading(false);
-    }
-  };
-
-  const handlePreviewFile = (fileId) => {
-    const file = uploadedFiles.find(f => f.id === fileId);
-    if (file && file.isPdf) {
-      setPreviewFile(file);
-      setShowPreview(true);
-    }
+  const handlePreviewFile = (file) => {
+    setPreviewFile(file);
+    setShowPreview(true);
   };
 
   if (loading) {
     return (
-      <div className="container-fluid py-4">
-        <div className="text-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Yükleniyor...</span>
-          </div>
+      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Yükleniyor...</span>
         </div>
-      </div>
-    );
-  }
-
-  if (!item && isEdit) {
-    return (
-      <div className="container-fluid py-4">
-        <div className="alert alert-warning">
-          <i className="bi bi-exclamation-triangle me-2"></i>
-          Ürün bilgisi bulunamadı. Lütfen ürün listesinden tekrar seçin.
-        </div>
-        <button className="btn btn-secondary" onClick={() => navigate('/definitions/items')}>
-          <i className="bi bi-arrow-left me-2"></i>
-          Ürün Listesine Dön
-        </button>
       </div>
     );
   }
@@ -315,24 +301,39 @@ const ItemEditPage = () => {
       {/* Header */}
       <div className="row mb-4">
         <div className="col-12">
-          <div className="d-flex justify-content-between align-items-center">
-            <div className="d-flex align-items-center">
-              <button 
-                className="btn btn-outline-secondary me-3"
-                onClick={handleCancel}
-                disabled={submitting}
-              >
-                <i className="bi bi-arrow-left me-2"></i>
-                Geri
-              </button>
-              <div>
-                <h2 className="mb-1">
-                  <i className="bi bi-box me-2"></i>
-                  {isEdit ? 'Ürün Düzenle' : 'Yeni Ürün'}
-                </h2>
-                <p className="text-muted mb-0">
-                  {isEdit ? `Ürün: ${item?.code}` : 'Yeni ürün oluştur'}
-                </p>
+          <div className="card shadow-sm">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <h2 className="mb-1">
+                    {isEdit ? 'Ürün Düzenle' : 'Yeni Ürün'}
+                  </h2>
+                  <p className="text-muted mb-0">
+                    {isEdit ? `Ürün: ${item?.code}` : 'Yeni ürün oluştur'}
+                  </p>
+                  
+                  {/* ✅ DataCam bilgilendirme banner'ı */}
+                  {fromDataCam && (
+                    <div className="alert alert-info mt-2 mb-0 py-2 px-3">
+                      <i className="bi bi-info-circle me-2"></i>
+                      <small>
+                        <strong>Data/CAM Hazırlama:</strong> Kaydet butonuna bastığınızda 
+                        bu ürün için teknik resim çalışması tamamlanmış olarak işaretlenecektir.
+                      </small>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={handleCancel}
+                    disabled={submitting}
+                  >
+                    <i className="bi bi-arrow-left me-2"></i>
+                    {fromDataCam ? 'Listeye Dön' : 'İptal'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -348,16 +349,18 @@ const ItemEditPage = () => {
                 <div className="row">
                   {/* Number */}
                   <div className="col-md-6 mb-3">
-                    <label className="form-label">Numara *</label>
+                    <label className="form-label">Numara</label>
                     <input
                       type="number"
-                      className="form-control"
+                      className={`form-control ${errors.number ? 'is-invalid' : ''}`}
                       name="number"
                       value={formData.number}
                       onChange={handleInputChange}
-                      required
                       disabled={submitting}
                     />
+                    {errors.number && (
+                      <div className="invalid-feedback">{errors.number}</div>
+                    )}
                   </div>
 
                   {/* Code */}
@@ -365,14 +368,16 @@ const ItemEditPage = () => {
                     <label className="form-label">Kod *</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className={`form-control ${errors.code ? 'is-invalid' : ''}`}
                       name="code"
                       value={formData.code}
                       onChange={handleInputChange}
-                      required
                       disabled={submitting}
                       maxLength={50}
                     />
+                    {errors.code && (
+                      <div className="invalid-feedback">{errors.code}</div>
+                    )}
                   </div>
 
                   {/* Name */}
@@ -380,48 +385,55 @@ const ItemEditPage = () => {
                     <label className="form-label">İsim *</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className={`form-control ${errors.name ? 'is-invalid' : ''}`}
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
-                      required
                       disabled={submitting}
                       maxLength={500}
                     />
+                    {errors.name && (
+                      <div className="invalid-feedback">{errors.name}</div>
+                    )}
                   </div>
 
                   {/* Doc Number */}
                   <div className="col-md-6 mb-3">
-                    <label className="form-label">Doküman No</label>
+                    <label className="form-label">Doküman No *</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className={`form-control ${errors.docNumber ? 'is-invalid' : ''}`}
                       name="docNumber"
                       value={formData.docNumber}
                       onChange={handleInputChange}
                       disabled={submitting}
                       maxLength={50}
                     />
+                    {errors.docNumber && (
+                      <div className="invalid-feedback">{errors.docNumber}</div>
+                    )}
                   </div>
 
                   {/* Group */}
                   <div className="col-md-6 mb-3">
                     <label className="form-label">Grup *</label>
                     <select
-                      className="form-select"
+                      className={`form-select ${errors.groupId ? 'is-invalid' : ''}`}
                       name="groupId"
                       value={formData.groupId}
                       onChange={handleInputChange}
-                      required
                       disabled={submitting}
                     >
-                      <option value="">Grup Seçin</option>
+                      <option value="">Grup Seçiniz</option>
                       {groups.map(group => (
                         <option key={group.id} value={group.id}>
                           {group.name}
                         </option>
                       ))}
                     </select>
+                    {errors.groupId && (
+                      <div className="invalid-feedback">{errors.groupId}</div>
+                    )}
                   </div>
 
                   {/* Dimensions */}
@@ -430,12 +442,15 @@ const ItemEditPage = () => {
                     <input
                       type="number"
                       step="0.01"
-                      className="form-control"
+                      className={`form-control ${errors.x ? 'is-invalid' : ''}`}
                       name="x"
                       value={formData.x}
                       onChange={handleInputChange}
                       disabled={submitting}
                     />
+                    {errors.x && (
+                      <div className="invalid-feedback">{errors.x}</div>
+                    )}
                   </div>
 
                   <div className="col-md-4 mb-3">
@@ -443,12 +458,15 @@ const ItemEditPage = () => {
                     <input
                       type="number"
                       step="0.01"
-                      className="form-control"
+                      className={`form-control ${errors.y ? 'is-invalid' : ''}`}
                       name="y"
                       value={formData.y}
                       onChange={handleInputChange}
                       disabled={submitting}
                     />
+                    {errors.y && (
+                      <div className="invalid-feedback">{errors.y}</div>
+                    )}
                   </div>
 
                   <div className="col-md-4 mb-3">
@@ -456,12 +474,15 @@ const ItemEditPage = () => {
                     <input
                       type="number"
                       step="0.01"
-                      className="form-control"
+                      className={`form-control ${errors.z ? 'is-invalid' : ''}`}
                       name="z"
                       value={formData.z}
                       onChange={handleInputChange}
                       disabled={submitting}
                     />
+                    {errors.z && (
+                      <div className="invalid-feedback">{errors.z}</div>
+                    )}
                   </div>
 
                   {/* Supplier Info */}
@@ -495,12 +516,15 @@ const ItemEditPage = () => {
                     <input
                       type="number"
                       step="0.01"
-                      className="form-control"
+                      className={`form-control ${errors.price ? 'is-invalid' : ''}`}
                       name="price"
                       value={formData.price}
                       onChange={handleInputChange}
                       disabled={submitting}
                     />
+                    {errors.price && (
+                      <div className="invalid-feedback">{errors.price}</div>
+                    )}
                   </div>
 
                   <div className="col-md-6 mb-3">
@@ -553,7 +577,7 @@ const ItemEditPage = () => {
                     ) : (
                       <>
                         <i className="bi bi-check-lg me-2"></i>
-                        {isEdit ? 'Güncelle' : 'Kaydet'}
+                        {isEdit ? 'Güncelle' : 'Oluştur'}
                       </>
                     )}
                   </button>
@@ -563,32 +587,29 @@ const ItemEditPage = () => {
           </div>
         </div>
 
-        {/* File Upload Section - Only show when editing */}
-        {isEdit && id && (
+        {/* File Upload Section - Only for Edit Mode */}
+        {isEdit && (
           <div className="col-12 col-lg-5">
             <ItemFileUpload
               itemId={parseInt(id)}
-              uploadedFiles={uploadedFiles}
-              onFileUpload={handleFileUpload}
-              onDeleteFile={handleDeleteFile}
-              onDeleteMultiple={handleDeleteMultiple}
-              onPreviewFile={handlePreviewFile}
-              uploading={uploading}
+              files={uploadedFiles}
               loading={filesLoading}
+              uploading={uploading}
+              onFileUploaded={handleFileUploaded}
+              onFileDeleted={handleFileDeleted}
+              onPreviewFile={handlePreviewFile}
             />
           </div>
         )}
       </div>
 
       {/* PDF Preview Modal */}
-      <PDFPreviewModal
-        show={showPreview}
-        file={previewFile}
-        onClose={() => {
-          setShowPreview(false);
-          setPreviewFile(null);
-        }}
-      />
+      {showPreview && previewFile && (
+        <PDFPreviewModal
+          file={previewFile}
+          onClose={() => setShowPreview(false)}
+        />
+      )}
     </div>
   );
 };

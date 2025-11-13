@@ -50,6 +50,11 @@ namespace API.Data.Entities
         [ForeignKey("GroupId")]
         public virtual ItemGroup? ItemGroup { get; set; }
 
-
+        /// <summary>
+        /// Teknik resim çalışması tamamlandı mı?
+        /// Bu alan sadece Data/CAM Hazırlama ekranından otomatik olarak güncellenir.
+        /// Manuel olarak güncellenemez.
+        /// </summary>
+        public bool TechnicalDrawingCompleted { get; set; } = false;
     }
 }

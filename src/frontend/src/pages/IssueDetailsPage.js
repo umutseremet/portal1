@@ -3,11 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
 import './IssueDetailsPage.css';
+import { REDMINE_BASE_URL } from '../utils/constants';
 
 const IssueDetailsPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const REDMINE_BASE_URL = 'http://192.168.1.17:9292';
 
     const { selectedDate, selectedGroup, currentWeek } = location.state || {};
 

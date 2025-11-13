@@ -253,6 +253,10 @@ namespace API.Controllers
                 return StatusCode(500, "İç sunucu hatası");
             }
         }
+        // ItemsController.cs içindeki UpdateItem metoduna eklenecek kod parçası:
+
+        // ❌ TechnicalDrawingCompleted flag'i manuel olarak güncellenemez
+        // Bu alan sadece DataCamPreparation ekranından otomatik olarak güncellenir
 
         [HttpPut("{id}")]
         public async Task<ActionResult<UpdateItemResponse>> UpdateItem(int id, [FromBody] UpdateItemRequest request)
@@ -273,45 +277,29 @@ namespace API.Controllers
                     return NotFound("Ürün bulunamadı");
                 }
 
-                // Grup var mı kontrol et
-                var itemGroup = await _context.ItemGroups
-                    .FirstOrDefaultAsync(g => g.Id == request.GroupId && (g.Cancelled == null || g.Cancelled == false));
-
-                if (itemGroup == null)
-                {
-                    return BadRequest("Geçersiz grup ID");
-                }
-
-                // Aynı kodda başka ürün var mı kontrol et
-                var existingItem = await _context.Items
-                    .FirstOrDefaultAsync(i => i.Code.ToLower() == request.Code.ToLower() && i.Id != id && (i.Cancelled == null || i.Cancelled == false));
-
-                if (existingItem != null)
-                {
-                    return BadRequest($"'{request.Code}' kodlu ürün zaten mevcut");
-                }
-
+                // ✅ Ürün bilgilerini güncelle
                 item.Number = request.Number;
-                item.Code = request.Code.Trim();
-                item.Name = request.Name.Trim();
-                item.DocNumber = request.DocNumber.Trim();
+                item.Code = request.Code;
+                item.Name = request.Name;
+                item.DocNumber = request.DocNumber;
                 item.GroupId = request.GroupId;
                 item.X = request.X;
                 item.Y = request.Y;
                 item.Z = request.Z;
+                item.ImageUrl = request.ImageUrl;
                 item.Supplier = request.Supplier;
                 item.SupplierCode = request.SupplierCode;
                 item.Unit = request.Unit;
                 item.Price = request.Price;
-                item.ImageUrl = request.ImageUrl?.Trim();
-                item.Cancelled = request.Cancelled;
                 item.UpdatedAt = DateTime.Now;
+
+                // ❌ CRITICAL: TechnicalDrawingCompleted flag'i manuel olarak güncellenemez
+                // Bu alan sadece DataCamPreparation controller'dan güncellenebilir
+                // Request'te bu alan gönderilse bile ignore edilir
 
                 await _context.SaveChangesAsync();
 
-                // Grup adını güncel almak için
-                await _context.Entry(item).Reference(i => i.ItemGroup).LoadAsync();
-
+                // Response oluştur...
                 return Ok(new UpdateItemResponse
                 {
                     Success = true,
@@ -330,12 +318,13 @@ namespace API.Controllers
                         Z = item.Z,
                         ImageUrl = item.ImageUrl,
                         Cancelled = item.Cancelled,
+                        TechnicalDrawingCompleted = item.TechnicalDrawingCompleted, // ✅ Response'ta gösterilir
                         CreatedAt = item.CreatedAt,
                         UpdatedAt = item.UpdatedAt,
-                        Supplier = request.Supplier,
-                        SupplierCode = request.SupplierCode,
-                        Unit = request.Unit,
-                        Price = request.Price
+                        Supplier = item.Supplier,
+                        SupplierCode = item.SupplierCode,
+                        Unit = item.Unit,
+                        Price = item.Price
                     }
                 });
             }
@@ -346,6 +335,10 @@ namespace API.Controllers
             }
         }
 
+        // ==================== NOT ====================
+        // UpdateItemRequest ve ItemResponse modellerine TechnicalDrawingCompleted eklenmemeli
+        // Sadece GetItem response'unda gösterilmeli (read-only)
+        // Bu şekilde kullanıcılar bu flag'i manuel olarak değiştiremez
         [HttpDelete("{id}")]
         public async Task<ActionResult<DeleteResponse>> DeleteItem(int id)
         {

@@ -1,5 +1,5 @@
 // src/frontend/src/App.js
-// ✅ DÜZELTİLMİŞ VERSİYON - Route sıralaması ve VehicleFormPage import'u eklendi
+// ✅ ROUTE SIRALAMA SORUNU DÜZELTİLDİ
 
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
@@ -13,16 +13,17 @@ import ProductionPage from './pages/ProductionPage';
 import VisitorsPage from './pages/VisitorsPage';
 import VehiclesPage from './pages/VehiclesPage';
 import VehicleDetailPage from './pages/VehicleDetailPage';
-import VehicleFormPage from './pages/VehicleFormPage'; // ✅ EKLENDİ
+import VehicleFormPage from './pages/VehicleFormPage';
 import VehicleFuelPurchasesPage from './pages/VehicleFuelPurchasesPage';
 import WeeklyProductionCalendarPage from './pages/WeeklyProductionCalendarPage';
 import IssueDetailsPage from './pages/IssueDetailsPage';
-import './App.css';
 import BOMTransferPage from './pages/BOMTransferPage';
+import DataCamPreparationPage from './pages/DataCamPreparationPage'; // ✅ EKLE
 import ItemsPage from './pages/ItemsPage';
 import ItemGroupsPage from './pages/ItemGroupsPage';
 import ItemDetailPage from './pages/ItemDetailPage';
 import ItemEditPage from './pages/ItemEditPage';
+import './App.css';
 
 function App() {
   return (
@@ -30,10 +31,14 @@ function App() {
       <ToastProvider>
         <AuthProvider>
           <Routes>
-            {/* Public Routes */}
+            {/* ============================================
+                PUBLIC ROUTES
+                ============================================ */}
             <Route path="/login" element={<Login />} />
 
-            {/* Protected Routes */}
+            {/* ============================================
+                DASHBOARD
+                ============================================ */}
             <Route
               path="/dashboard"
               element={
@@ -46,13 +51,35 @@ function App() {
             />
 
             {/* ============================================
-                ARAÇ YÖNETİMİ ROUTES - SIRALAMA ÖNEMLİ!
-                ============================================
-                ✅ Spesifik route'lar ÖNCE gelmeli
-                ✅ Genel route (/vehicles) EN SONDA
-            */}
+                ARAÇ YÖNETİMİ ROUTES
+                SPESİFİK ROUTES ÖNCE!
+                ============================================ */}
             
-            {/* Yeni Araç Ekleme - /vehicles/new */}
+            {/* Araç Yakıt Alımları */}
+            <Route
+              path="/vehicles/:id/fuel-purchases"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <VehicleFuelPurchasesPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Araç Düzenleme */}
+            <Route
+              path="/vehicles/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <VehicleFormPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Yeni Araç */}
             <Route
               path="/vehicles/new"
               element={
@@ -64,21 +91,9 @@ function App() {
               }
             />
 
-            {/* Araç Düzenleme - /vehicles/edit/:id */}
+            {/* Araç Detay */}
             <Route
-              path="/vehicles/edit/:id"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <VehicleFormPage />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Araç Detay - /vehicles/detail/:id */}
-            <Route
-              path="/vehicles/detail/:id"
+              path="/vehicles/:id"
               element={
                 <ProtectedRoute>
                   <Layout>
@@ -88,19 +103,7 @@ function App() {
               }
             />
 
-            {/* Araç Yakıt Alımları - /vehicles/fuel-purchases */}
-            <Route
-              path="/vehicles/fuel-purchases"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <VehicleFuelPurchasesPage />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Araç Listesi - /vehicles (EN SONA KOYULDU) */}
+            {/* Araç Listesi */}
             <Route
               path="/vehicles"
               element={
@@ -113,12 +116,25 @@ function App() {
             />
 
             {/* ============================================
-                ÜRÜN YÖNETİMİ ROUTES - SIRALAMA ÖNEMLİ!
+                TANIMLAMALAR ROUTES
+                SPESİFİK ROUTES ÖNCE!
                 ============================================ */}
             
             {/* Yeni Ürün Ekleme */}
             <Route 
               path="/definitions/items/new" 
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ItemEditPage />
+                  </Layout>
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Ürün Düzenleme - SPESİFİK ROUTE */}
+            <Route 
+              path="/definitions/items/edit/:id" 
               element={
                 <ProtectedRoute>
                   <Layout>
@@ -135,18 +151,6 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <ItemDetailPage />
-                  </Layout>
-                </ProtectedRoute>
-              } 
-            />
-
-            {/* Ürün Düzenleme */}
-            <Route 
-              path="/definitions/items/edit/:id" 
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ItemEditPage />
                   </Layout>
                 </ProtectedRoute>
               } 
@@ -178,6 +182,7 @@ function App() {
 
             {/* ============================================
                 ÜRETİM YÖNETİMİ ROUTES
+                SPESİFİK ROUTES ÖNCE, WILDCARD EN SONA!
                 ============================================ */}
 
             {/* BOM Transfer */}
@@ -187,6 +192,18 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <BOMTransferPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Data/CAM Hazırlama */}
+            <Route
+              path="/production/data-cam"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <DataCamPreparationPage />
                   </Layout>
                 </ProtectedRoute>
               }
@@ -216,7 +233,7 @@ function App() {
               }
             />
 
-            {/* Genel Üretim Sayfası (wildcard) */}
+            {/* ⚠️ WILDCARD ROUTE - EN SONA KOYULDU! */}
             <Route
               path="/production/*"
               element={

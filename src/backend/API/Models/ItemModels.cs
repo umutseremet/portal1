@@ -71,12 +71,14 @@ namespace API.Models
 
         [Required(ErrorMessage = "Grup ID zorunludur")]
         public int GroupId { get; set; }
+
         public double? X { get; set; }
         public double? Y { get; set; }
         public double? Z { get; set; }
 
         [MaxLength(500, ErrorMessage = "Resim URL'i en fazla 500 karakter olabilir")]
         public string? ImageUrl { get; set; }
+
         public string SupplierCode { get; set; } = string.Empty;
         public double Price { get; set; }
         public string? Supplier { get; set; }
@@ -157,8 +159,13 @@ namespace API.Models
         public double Price { get; set; }
         public string? Supplier { get; set; }
         public string? Unit { get; set; }
-    }
 
+        /// <summary>
+        /// Teknik resim çalışması tamamlandı mı? (Read-only)
+        /// Bu alan sadece gösterim için kullanılır, güncellenemez
+        /// </summary>
+        public bool TechnicalDrawingCompleted { get; set; }
+    }
 
     public class GetItemsResponse
     {
