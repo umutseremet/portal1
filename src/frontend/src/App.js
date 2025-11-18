@@ -18,7 +18,7 @@ import VehicleFuelPurchasesPage from './pages/VehicleFuelPurchasesPage';
 import WeeklyProductionCalendarPage from './pages/WeeklyProductionCalendarPage';
 import IssueDetailsPage from './pages/IssueDetailsPage';
 import BOMTransferPage from './pages/BOMTransferPage';
-import DataCamPreparationPage from './pages/DataCamPreparationPage'; // ✅ EKLE
+import DataCamPreparationPage from './pages/DataCamPreparationPage';
 import ItemsPage from './pages/ItemsPage';
 import ItemGroupsPage from './pages/ItemGroupsPage';
 import ItemDetailPage from './pages/ItemDetailPage';
@@ -132,7 +132,19 @@ function App() {
               } 
             />
 
-            {/* Ürün Düzenleme - SPESİFİK ROUTE */}
+            {/* ✅ DÜZELTİLDİ: Ürün Düzenleme - Her iki pattern için de route tanımlandı */}
+            <Route 
+              path="/definitions/items/:id/edit" 
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ItemEditPage />
+                  </Layout>
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Eski pattern için backward compatibility */}
             <Route 
               path="/definitions/items/edit/:id" 
               element={

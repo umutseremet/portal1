@@ -1,4 +1,6 @@
 // src/frontend/src/components/Items/ItemsList.js
+// ✅ Teknik resim filtresi eklenmiş TAM versiyon
+
 import React, { useState } from 'react';
 
 const ItemsList = ({
@@ -26,14 +28,18 @@ const ItemsList = ({
   isEmpty,
   selectedCount,
   isAllSelected,
-  filterSummary
+  filterSummary,
+  apiBaseUrl
 }) => {
   const [showFilters, setShowFilters] = useState(false);
+  
+  // ✅ technicalDrawingCompleted eklendi
   const [localFilters, setLocalFilters] = useState({
     name: filters.name || '',
     code: filters.code || '',
     groupId: filters.groupId || '',
-    includeCancelled: filters.includeCancelled || false
+    includeCancelled: filters.includeCancelled || false,
+    technicalDrawingCompleted: filters.technicalDrawingCompleted ?? null
   });
 
   // Sorting helpers
@@ -57,12 +63,14 @@ const ItemsList = ({
     setShowFilters(false);
   };
 
+  // ✅ technicalDrawingCompleted eklendi
   const handleResetFilters = () => {
     const resetFilters = {
       name: '',
       code: '',
       groupId: '',
-      includeCancelled: false
+      includeCancelled: false,
+      technicalDrawingCompleted: null
     };
     setLocalFilters(resetFilters);
     onResetFilters?.();
@@ -73,6 +81,9 @@ const ItemsList = ({
     const group = itemGroups.find(g => g.id === groupId);
     return group?.name || 'Bilinmiyor';
   };
+
+  // API Base URL
+  const baseUrl = apiBaseUrl?.replace('/api', '') || 'http://localhost:5154';
 
   // Loading state
   if (loading && items.length === 0) {
@@ -93,11 +104,7 @@ const ItemsList = ({
         <div className="d-flex gap-2">
           <button
             className="btn btn-outline-secondary btn-sm"
-            onClick={() => {
-              console.log('🔄 Refresh onClick triggered');
-              setShowFilters(!showFilters)
-            }
-            }
+            onClick={() => setShowFilters(!showFilters)}
           >
             <i className="bi bi-funnel me-1"></i>
             Filtreler
@@ -136,7 +143,7 @@ const ItemsList = ({
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters Panel */}
       {showFilters && (
         <div className="card mb-3">
           <div className="card-body">
@@ -176,6 +183,7 @@ const ItemsList = ({
                   ))}
                 </select>
               </div>
+              
               <div className="col-md-12">
                 <div className="form-check form-switch">
                   <input
@@ -190,7 +198,31 @@ const ItemsList = ({
                   </label>
                 </div>
               </div>
+
+              {/* ✅ YENİ EKLEME: Teknik Resim Filtresi */}
+              <div className="col-md-12 mt-2">
+                <label className="form-label">Teknik Resim Durumu</label>
+                <select
+                  className="form-select"
+                  value={
+                    localFilters.technicalDrawingCompleted === null 
+                      ? '' 
+                      : localFilters.technicalDrawingCompleted.toString()
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value === '' 
+                      ? null 
+                      : e.target.value === 'true';
+                    handleLocalFilterChange('technicalDrawingCompleted', value);
+                  }}
+                >
+                  <option value="">Tümü</option>
+                  <option value="true">Tamamlanmış</option>
+                  <option value="false">Bekliyor</option>
+                </select>
+              </div>
             </div>
+            
             <div className="mt-3">
               <div className="d-flex gap-2">
                 <button
@@ -220,6 +252,7 @@ const ItemsList = ({
         </div>
       )}
 
+      {/* Filter Summary */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div className="text-muted small">
           Toplam {pagination.totalCount || items.length} ürün
@@ -316,7 +349,7 @@ const ItemsList = ({
                   <td>
                     {item.imageUrl ? (
                       <img
-                        src={item.imageUrl}
+                        src={`${baseUrl}${item.imageUrl}`}
                         alt={item.name}
                         className="img-thumbnail"
                         style={{
@@ -326,57 +359,65 @@ const ItemsList = ({
                           cursor: 'pointer'
                         }}
                         onClick={() => onViewItem?.(item)}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.parentElement.innerHTML = '<i class="bi bi-image text-muted" style="font-size: 2rem;"></i>';
-                        }}
                       />
                     ) : (
-                      <i className="bi bi-image text-muted" style={{ fontSize: '2rem' }}></i>
+                      <div
+                        className="img-thumbnail d-flex align-items-center justify-content-center bg-light"
+                        style={{ width: '50px', height: '50px' }}
+                      >
+                        <i className="bi bi-image text-muted"></i>
+                      </div>
                     )}
                   </td>
                   <td>
-                    <span className="badge bg-light text-dark">{item.code}</span>
+                    <code className="text-primary">{item.code}</code>
                   </td>
                   <td>
-                    <button
-                      className="btn btn-link text-start p-0 text-decoration-none"
-                      onClick={() => onViewItem?.(item)}
-                    >
-                      <div className="fw-medium">{item.name}</div>
-                      {item.docNumber && (
-                        <div className="small text-muted">Dok: {item.docNumber}</div>
-                      )}
-                    </button>
+                    <strong>{item.name}</strong>
+                    {item.docNumber && (
+                      <div className="small text-muted">Dok: {item.docNumber}</div>
+                    )}
                   </td>
                   <td>
-                    <span className="badge bg-info text-dark">
+                    <span className="badge bg-secondary">
                       {getGroupName(item.groupId)}
                     </span>
                   </td>
                   <td>
                     {item.price ? (
-                      <span className="fw-medium">
-                        {item.price.toLocaleString('tr-TR', {
-                          style: 'currency',
-                          currency: 'TRY'
-                        })}
+                      <span className="text-success fw-bold">
+                        ₺{item.price.toFixed(2)}
                       </span>
-                    ) : '-'}
-                  </td>
-                  <td>
-                    {item.cancelled ? (
-                      <span className="badge bg-danger">İptal</span>
                     ) : (
-                      <span className="badge bg-success">Aktif</span>
+                      <span className="text-muted">-</span>
                     )}
                   </td>
                   <td>
-                    <div className="btn-group btn-group-sm" role="group">
+                    <div className="d-flex gap-1 flex-wrap">
+                      {item.cancelled && (
+                        <span className="badge bg-danger">İptal</span>
+                      )}
+                      
+                      {/* ✅ YENİ: Teknik resim badge */}
+                      {item.technicalDrawingCompleted ? (
+                        <span className="badge bg-success" title="Teknik resim çalışması tamamlandı">
+                          <i className="bi bi-check-circle me-1"></i>
+                          TR Tamam
+                        </span>
+                      ) : (
+                        <span className="badge bg-warning text-dark" title="Teknik resim çalışması bekliyor">
+                          <i className="bi bi-clock me-1"></i>
+                          TR Bekliyor
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="btn-group btn-group-sm">
                       <button
                         className="btn btn-outline-primary"
                         onClick={() => onViewItem?.(item)}
-                        title="Görüntüle"
+                        title="Detayları Gör"
                       >
                         <i className="bi bi-eye"></i>
                       </button>
@@ -389,7 +430,7 @@ const ItemsList = ({
                       </button>
                       <button
                         className="btn btn-outline-danger"
-                        onClick={() => onDeleteItem?.(item)}
+                        onClick={() => onDeleteItem?.(item.id)}
                         title="Sil"
                       >
                         <i className="bi bi-trash"></i>
@@ -405,60 +446,63 @@ const ItemsList = ({
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
-        <div className="d-flex justify-content-between align-items-center mt-3">
-          <div className="text-muted small">
-            Sayfa {pagination.currentPage} / {pagination.totalPages}
-          </div>
-          <nav>
-            <ul className="pagination pagination-sm mb-0">
-              <li className={`page-item ${!pagination.hasPreviousPage ? 'disabled' : ''}`}>
-                <button
-                  className="page-link"
-                  onClick={() => onPageChange?.(pagination.currentPage - 1)}
-                  disabled={!pagination.hasPreviousPage}
-                >
-                  <i className="bi bi-chevron-left"></i>
-                </button>
-              </li>
+        <nav className="mt-4">
+          <ul className="pagination justify-content-center">
+            <li className={`page-item ${!pagination.hasPreviousPage ? 'disabled' : ''}`}>
+              <button
+                className="page-link"
+                onClick={() => onPageChange?.(pagination.currentPage - 1)}
+                disabled={!pagination.hasPreviousPage}
+              >
+                <i className="bi bi-chevron-left"></i>
+              </button>
+            </li>
 
-              {[...Array(pagination.totalPages)].map((_, i) => {
-                const page = i + 1;
-                if (
-                  page === 1 ||
-                  page === pagination.totalPages ||
-                  (page >= pagination.currentPage - 1 && page <= pagination.currentPage + 1)
-                ) {
-                  return (
-                    <li key={page} className={`page-item ${page === pagination.currentPage ? 'active' : ''}`}>
-                      <button
-                        className="page-link"
-                        onClick={() => onPageChange?.(page)}
-                      >
-                        {page}
-                      </button>
-                    </li>
-                  );
-                } else if (
-                  page === pagination.currentPage - 2 ||
-                  page === pagination.currentPage + 2
-                ) {
-                  return <li key={page} className="page-item disabled"><span className="page-link">...</span></li>;
-                }
-                return null;
-              })}
+            {[...Array(pagination.totalPages)].map((_, index) => {
+              const pageNum = index + 1;
+              // Show first, last, current, and 2 pages around current
+              if (
+                pageNum === 1 ||
+                pageNum === pagination.totalPages ||
+                (pageNum >= pagination.currentPage - 2 && pageNum <= pagination.currentPage + 2)
+              ) {
+                return (
+                  <li
+                    key={pageNum}
+                    className={`page-item ${pagination.currentPage === pageNum ? 'active' : ''}`}
+                  >
+                    <button
+                      className="page-link"
+                      onClick={() => onPageChange?.(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  </li>
+                );
+              } else if (
+                pageNum === pagination.currentPage - 3 ||
+                pageNum === pagination.currentPage + 3
+              ) {
+                return (
+                  <li key={pageNum} className="page-item disabled">
+                    <span className="page-link">...</span>
+                  </li>
+                );
+              }
+              return null;
+            })}
 
-              <li className={`page-item ${!pagination.hasNextPage ? 'disabled' : ''}`}>
-                <button
-                  className="page-link"
-                  onClick={() => onPageChange?.(pagination.currentPage + 1)}
-                  disabled={!pagination.hasNextPage}
-                >
-                  <i className="bi bi-chevron-right"></i>
-                </button>
-              </li>
-            </ul>
-          </nav>
-        </div>
+            <li className={`page-item ${!pagination.hasNextPage ? 'disabled' : ''}`}>
+              <button
+                className="page-link"
+                onClick={() => onPageChange?.(pagination.currentPage + 1)}
+                disabled={!pagination.hasNextPage}
+              >
+                <i className="bi bi-chevron-right"></i>
+              </button>
+            </li>
+          </ul>
+        </nav>
       )}
     </div>
   );

@@ -1,4 +1,6 @@
 // src/frontend/src/pages/ItemsPage.js
+// ✅ Teknik resim filtresi eklenmiş versiyon
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ItemsList from '../components/Items/ItemsList';
@@ -20,12 +22,13 @@ const ItemsPage = () => {
   const [error, setError] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
 
-  // Filters
+  // ✅ Filters - technicalDrawingCompleted eklendi
   const [filters, setFilters] = useState({
     name: '',
     code: '',
     groupId: groupFilter || null,
     includeCancelled: false,
+    technicalDrawingCompleted: null, // ✅ YENİ: null = tümü, true = tamamlanmış, false = bekliyor
     page: 1,
     pageSize: 10,
     sortBy: 'Name',
@@ -132,10 +135,9 @@ const ItemsPage = () => {
   };
 
   const handleEditItem = (item) => {
-    navigate(`/definitions/items/edit/${item.id}`, { state: { item, itemGroups } });
+    navigate(`/definitions/items/${item.id}/edit`, { state: { item, itemGroups } });
   };
 
-  // ✅ Yeni ürün sayfasına yönlendir (MODAL YOK!)
   const handleNewItem = () => {
     navigate('/definitions/items/new', { state: { itemGroups } });
   };
@@ -184,12 +186,14 @@ const ItemsPage = () => {
     }
   };
 
+  // ✅ handleResetFilters - technicalDrawingCompleted eklendi
   const handleResetFilters = () => {
     setFilters({
       name: '',
       code: '',
       groupId: groupFilter || null,
       includeCancelled: false,
+      technicalDrawingCompleted: null, // ✅ YENİ
       page: 1,
       pageSize: 10,
       sortBy: 'Name',
@@ -202,16 +206,20 @@ const ItemsPage = () => {
     loadItems();
   };
 
-  const hasFilters = filters.name || filters.code || (filters.groupId && !groupFilter) || filters.includeCancelled;
+  const hasFilters = filters.name || filters.code || (filters.groupId && !groupFilter) || 
+                     filters.includeCancelled || filters.technicalDrawingCompleted !== null; // ✅ YENİ
   const isEmpty = !loading && items.length === 0;
   const selectedCount = selectedItems.length;
   const isAllSelected = items.length > 0 && selectedItems.length === items.length;
 
+  // ✅ filterSummary - technicalDrawingCompleted eklendi
   const filterSummary = [
     filters.name && `İsim: "${filters.name}"`,
     filters.code && `Kod: "${filters.code}"`,
     filters.groupId && `Grup: "${itemGroups.find(g => g.id === filters.groupId)?.name}"`,
-    filters.includeCancelled && 'İptal edilmiş dahil'
+    filters.includeCancelled && 'İptal edilmiş dahil',
+    filters.technicalDrawingCompleted === true && 'Teknik resim tamamlanmış', // ✅ YENİ
+    filters.technicalDrawingCompleted === false && 'Teknik resim bekliyor'    // ✅ YENİ
   ].filter(Boolean).join(', ');
 
   return (

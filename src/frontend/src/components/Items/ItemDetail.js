@@ -35,7 +35,7 @@ const ItemDetail = ({ item, itemGroups, loading, onEdit, onDelete }) => {
             </div>
             <div className="detail-item mb-2">
               <strong>Kod:</strong>
-              <span className="ms-2 badge bg-light text-dark">{item.code}</span>
+              <span className="ms-2">{item.code}</span>
             </div>
             <div className="detail-item mb-2">
               <strong>İsim:</strong>
@@ -57,6 +57,22 @@ const ItemDetail = ({ item, itemGroups, loading, onEdit, onDelete }) => {
                 ) : (
                   <span className="badge bg-success">Aktif</span>
                 )}
+              </span>
+            </div>
+            <div className="detail-item mb-2">
+              <strong>Teknilk Resim:</strong>
+              <span className="ms-2">
+                {item.technicalDrawingCompleted ? (
+                        <span className="badge bg-success" title="Teknik resim çalışması tamamlandı">
+                          <i className="bi bi-check-circle me-1"></i>
+                          TR Tamam
+                        </span>
+                      ) : (
+                        <span className="badge bg-warning text-dark" title="Teknik resim çalışması bekliyor">
+                          <i className="bi bi-clock me-1"></i>
+                          TR Bekliyor
+                        </span>
+                      )}
               </span>
             </div>
           </div>

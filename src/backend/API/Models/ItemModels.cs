@@ -131,6 +131,7 @@ namespace API.Models
         public string? SortOrder { get; set; } = "asc";
         public string DocNumber { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
+        public bool? TechnicalDrawingCompleted { get; set; } // ✅ YENİ
     }
 
     public class ItemResponse

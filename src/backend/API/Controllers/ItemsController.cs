@@ -61,6 +61,11 @@ namespace API.Controllers
                     query = query.Where(i => i.Cancelled == null || i.Cancelled == false);
                 }
 
+                if (request.TechnicalDrawingCompleted.HasValue)
+                {
+                    query = query.Where(i => i.TechnicalDrawingCompleted == request.TechnicalDrawingCompleted.Value);
+                }
+
                 // Toplam kayıt sayısı
                 var totalCount = await query.CountAsync();
 
@@ -99,7 +104,8 @@ namespace API.Controllers
                         ImageUrl = i.ImageUrl,
                         Cancelled = i.Cancelled,
                         CreatedAt = i.CreatedAt,
-                        UpdatedAt = i.UpdatedAt
+                        UpdatedAt = i.UpdatedAt,
+                        TechnicalDrawingCompleted = i.TechnicalDrawingCompleted
                     })
                     .ToListAsync();
 

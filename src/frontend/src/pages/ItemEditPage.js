@@ -592,7 +592,7 @@ const ItemEditPage = () => {
           <div className="col-12 col-lg-5">
             <ItemFileUpload
               itemId={parseInt(id)}
-              files={uploadedFiles}
+              uploadedFiles={uploadedFiles}
               loading={filesLoading}
               uploading={uploading}
               onFileUploaded={handleFileUploaded}
